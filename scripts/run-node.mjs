@@ -176,10 +176,27 @@ const logRunner = (message, deps) => {
   deps.stderr.write(`[openclaw] ${message}\n`);
 };
 
+const resolveCliNameOverride = (env) => {
+  const explicit = env.OPENCLAW_CLI_NAME?.trim();
+  if (explicit === "openclaw" || explicit === "codeclaw") {
+    return explicit;
+  }
+  const lifecycle = env.npm_lifecycle_event?.trim();
+  if (lifecycle?.startsWith("codeclaw")) {
+    return "codeclaw";
+  }
+  if (lifecycle?.startsWith("openclaw")) {
+    return "openclaw";
+  }
+  return undefined;
+};
+
 const runOpenClaw = async (deps) => {
+  const cliName = resolveCliNameOverride(deps.env);
+  const env = cliName ? { ...deps.env, OPENCLAW_CLI_NAME: cliName } : deps.env;
   const nodeProcess = deps.spawn(deps.execPath, ["openclaw.mjs", ...deps.args], {
     cwd: deps.cwd,
-    env: deps.env,
+    env,
     stdio: "inherit",
   });
   const res = await new Promise((resolve) => {

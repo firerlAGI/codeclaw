@@ -13,6 +13,7 @@ import { getSubCliCommandsWithSubcommands } from "./register.subclis.js";
 
 const CLI_NAME = resolveCliName();
 const CLI_NAME_PATTERN = escapeRegExp(CLI_NAME);
+const CLI_DISPLAY_NAME = CLI_NAME === "codeclaw" ? "CodeClaw" : "OpenClaw";
 const ROOT_COMMANDS_WITH_SUBCOMMANDS = new Set([
   ...getCoreCliCommandsWithSubcommands(),
   ...getSubCliCommandsWithSubcommands(),
@@ -112,7 +113,9 @@ export function configureProgramHelp(program: Command, ctx: ProgramContext) {
   ) {
     const commit = resolveCommitHash({ moduleUrl: import.meta.url });
     console.log(
-      commit ? `OpenClaw ${ctx.programVersion} (${commit})` : `OpenClaw ${ctx.programVersion}`,
+      commit
+        ? `${CLI_DISPLAY_NAME} ${ctx.programVersion} (${commit})`
+        : `${CLI_DISPLAY_NAME} ${ctx.programVersion}`,
     );
     process.exit(0);
   }

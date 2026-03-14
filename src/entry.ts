@@ -4,6 +4,7 @@ import { enableCompileCache } from "node:module";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { isRootHelpInvocation, isRootVersionInvocation } from "./cli/argv.js";
+import { resolveCliName } from "./cli/cli-name.js";
 import { applyCliProfileEnv, parseCliProfileArgs } from "./cli/profile.js";
 import { shouldSkipRespawnForArgv } from "./cli/respawn-policy.js";
 import { normalizeWindowsArgv } from "./cli/windows-argv.js";
@@ -14,9 +15,14 @@ import { installProcessWarningFilter } from "./infra/warning-filter.js";
 import { attachChildProcessBridge } from "./process/child-process-bridge.js";
 
 const ENTRY_WRAPPER_PAIRS = [
+  { wrapperBasename: "codeclaw.mjs", entryBasename: "entry.js" },
+  { wrapperBasename: "codeclaw.js", entryBasename: "entry.js" },
   { wrapperBasename: "openclaw.mjs", entryBasename: "entry.js" },
   { wrapperBasename: "openclaw.js", entryBasename: "entry.js" },
 ] as const;
+
+const resolveCliDisplayName = (argv: string[]) =>
+  resolveCliName(argv) === "codeclaw" ? "CodeClaw" : "OpenClaw";
 
 function shouldForceReadOnlyAuthStore(argv: string[]): boolean {
   const tokens = argv.slice(2).filter((token) => token.length > 0 && !token.startsWith("-"));
@@ -41,7 +47,7 @@ if (
 ) {
   // Imported as a dependency — skip all entry-point side effects.
 } else {
-  process.title = "openclaw";
+  process.title = resolveCliName(process.argv);
   ensureOpenClawExecMarkerOnProcess();
   installProcessWarningFilter();
   normalizeEnv();
@@ -132,7 +138,10 @@ if (
     Promise.all([import("./version.js"), import("./infra/git-commit.js")])
       .then(([{ VERSION }, { resolveCommitHash }]) => {
         const commit = resolveCommitHash({ moduleUrl: import.meta.url });
-        console.log(commit ? `OpenClaw ${VERSION} (${commit})` : `OpenClaw ${VERSION}`);
+        const cliDisplayName = resolveCliDisplayName(process.argv);
+        console.log(
+          commit ? `${cliDisplayName} ${VERSION} (${commit})` : `${cliDisplayName} ${VERSION}`,
+        );
         process.exit(0);
       })
       .catch((error) => {

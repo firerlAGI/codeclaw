@@ -3,6 +3,7 @@ import { resolveCommitHash } from "../infra/git-commit.js";
 import { visibleWidth } from "../terminal/ansi.js";
 import { isRich, theme } from "../terminal/theme.js";
 import { hasRootVersionAlias } from "./argv.js";
+import { resolveCliName } from "./cli-name.js";
 import { pickTagline, type TaglineMode, type TaglineOptions } from "./tagline.js";
 
 type BannerOptions = TaglineOptions & {
@@ -57,12 +58,13 @@ function resolveTaglineMode(options: BannerOptions): TaglineMode | undefined {
 }
 
 export function formatCliBannerLine(version: string, options: BannerOptions = {}): string {
+  const cliName = resolveCliName(options.argv);
   const commit =
     options.commit ?? resolveCommitHash({ env: options.env, moduleUrl: import.meta.url });
   const commitLabel = commit ?? "unknown";
   const tagline = pickTagline({ ...options, mode: resolveTaglineMode(options) });
   const rich = options.richTty ?? isRich();
-  const title = "🦞 OpenClaw";
+  const title = cliName === "codeclaw" ? "🦞 CodeClaw" : "🦞 OpenClaw";
   const prefix = "🦞 ";
   const columns = options.columns ?? process.stdout.columns ?? 120;
   const plainBaseLine = `${title} ${version} (${commitLabel})`;
@@ -108,8 +110,12 @@ const LOBSTER_ASCII = [
 ];
 
 export function formatCliBannerArt(options: BannerOptions = {}): string {
+  const cliName = resolveCliName(options.argv);
   const rich = options.richTty ?? isRich();
   if (!rich) {
+    if (cliName === "codeclaw") {
+      return LOBSTER_ASCII.join("\n").replaceAll("OPENCLAW", "CODECLAW");
+    }
     return LOBSTER_ASCII.join("\n");
   }
 
@@ -128,10 +134,11 @@ export function formatCliBannerArt(options: BannerOptions = {}): string {
 
   const colored = LOBSTER_ASCII.map((line) => {
     if (line.includes("OPENCLAW")) {
+      const label = cliName === "codeclaw" ? " CODECLAW " : " OPENCLAW ";
       return (
         theme.muted("              ") +
         theme.accent("🦞") +
-        theme.info(" OPENCLAW ") +
+        theme.info(label) +
         theme.accent("🦞")
       );
     }
